@@ -1,0 +1,34 @@
+{
+    "configurations": [
+        {
+            "name": "fliaght01_hal",
+            "includePath": [
+                "${workspaceFolder}/Core/Inc",
+                "${workspaceFolder}/Drivers/STM32F1xx_HAL_Driver/Inc",
+                "${workspaceFolder}/Drivers/STM32F1xx_HAL_Driver/Inc/Legacy",
+                "${workspaceFolder}/Drivers/CMSIS/Device/ST/STM32F1xx/Include",
+                "${workspaceFolder}/Drivers/CMSIS/Include",
+                "E:/develope/Keil5/Core/ARM/ARMCC/include",
+                "E:/develope/Keil5/Core/ARM/ARMCC/include/rw",
+                "${workspaceFolder}/Core/Src",
+                "${workspaceFolder}/Drivers/STM32F1xx_HAL_Driver/Src",
+                "${workspaceFolder}/Drivers/CMSIS/Include",
+                "${workspaceFolder}/Drivers/STM32F1xx_HAL_Driver/Inc",
+                "${workspaceFolder}/MDK-ARM/Interface",
+                "${workspaceFolder}/MDK-ARM/Application",
+                "${workspaceFolder}/Middlewares/Third_Party/FreeRTOS/Source/include",
+                "${workspaceFolder}/Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS_V2",
+                "${workspaceFolder}/Middlewares/Third_Party/FreeRTOS/Source/portable/RVDS/ARM_CM3"
+            ],
+            "defines": [
+                "USE_HAL_DRIVER",
+                "STM32F103xB",
+                "__CC_ARM",
+                "__arm__"
+            ],
+            "intelliSenseMode": "windows-msvc-x64",
+            "cStandard": "c11"
+        }
+    ],
+    "version": 4
+}
