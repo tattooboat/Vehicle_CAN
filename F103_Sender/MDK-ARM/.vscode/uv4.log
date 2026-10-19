@@ -1,3 +1,3 @@
-Load "F103_CAN_Slave\\F103_CAN_Slave.axf" 
+Load "e:\\code\\2026stm32\\Vehicle_CAN\\Vehicle_CAN\\F103_Sender\\MDK-ARM\\F103_Sender\\F103_Sender.axf" 
 Erase Done.Programming Done.Verify OK.Application running ...
-Flash Load finished at 17:19:23
+Flash Load finished at 18:30:07

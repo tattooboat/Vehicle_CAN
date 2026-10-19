@@ -81,7 +81,7 @@
           </BeforeMake>
           <AfterMake>
             <RunUserProg1>0</RunUserProg1>
-            <RunUserProg2>0</RunUserProg2>
+            <RunUserProg2>1</RunUserProg2>
             <UserProg1Name></UserProg1Name>
             <UserProg2Name></UserProg2Name>
             <UserProg1Dos16Mode>0</UserProg1Dos16Mode>
@@ -1297,6 +1297,16 @@
               <FileType>5</FileType>
               <FilePath>.\Interface\Int_motor.h</FilePath>
             </File>
+            <File>
+              <FileName>Int_Encoder.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\Interface\Int_Encoder.c</FilePath>
+            </File>
+            <File>
+              <FileName>Int_Encoder.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\Interface\Int_Encoder.h</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
@@ -1985,6 +1995,16 @@
               <FileName>App_Fault.c</FileName>
               <FileType>1</FileType>
               <FilePath>.\Application\App_Fault.c</FilePath>
+            </File>
+            <File>
+              <FileName>App_SpeedPID.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\Application\App_SpeedPID.c</FilePath>
+            </File>
+            <File>
+              <FileName>App_SpeedPID.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\Application\App_SpeedPID.h</FilePath>
             </File>
           </Files>
         </Group>

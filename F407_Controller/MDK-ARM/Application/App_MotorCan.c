@@ -1,6 +1,4 @@
 #include "App_MotorCan.h"
-#include "main.h"
-#include <stdint.h>
 #include "App_Fault.h"
 
 #define MOTOR_CAN_ID       0x301

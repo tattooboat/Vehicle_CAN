@@ -26,16 +26,16 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "cmsis_os2.h"
-#include "main.h"
 #include <stdio.h>
 #include <string.h>
+#include <math.h>
 #include "usart.h"
 #include "App_data.h"
 #include "adc.h"
 #include "Int_aht20.h"
 #include "tim.h"
 #include "Int_motor.h"
-#include "App_MotorControl.h"
+#include "Int_Encoder.h"
 #include "App_MotorCan.h"
 #include <App_Fault.h>
 
@@ -59,7 +59,7 @@
 
 /* Private variables ---------------------------------------------------------*/
 /* USER CODE BEGIN Variables */
-osMessageQueueId_t SensorDataQueueHandle;// 传感器数据队列句柄
+osMessageQueueId_t SensorDataQueueHandle;/* 传感器数据队列句柄 */
 
 /* USER CODE END Variables */
 /* Definitions for defaultTask */
@@ -104,7 +104,7 @@ void MX_FREERTOS_Init(void) {
       8,
       sizeof(SensorData_t),
       &SensorDataQueue_attributes
-  );;// 创建传感器数据队列
+  );// 创建传感器数据队列
   if (SensorDataQueueHandle == NULL)
   {
       /* 队列创建失败，可在此设置错误标志 */
@@ -129,7 +129,7 @@ void MX_FREERTOS_Init(void) {
       .priority = (osPriority_t)osPriorityNormal
   };
 
-  /* PWM_Test_Task 已停用：改为由 Motor_CAN_Control_Task 独占电机控制 */
+  /* PWM_Test_Task 已停用，电机控制统一由 Motor_CAN_Control_Task 负责 */
   const osThreadAttr_t motorCanTask_attributes = {
         .name = "Motor_CAN",
         .stack_size = 1024 * 4,
@@ -341,76 +341,156 @@ void Sensor_Task(void *argument)
     }
 }
 
-/* 电机 CAN 控制任务：唯一负责驱动电机，读取帧解析结果并输出 PWM */
+/* PID 参数定义 */
+#define MOTOR_MAX_RPM       169.0f
+
+/* 当前 Motor_CAN 使用本文件内联 PI；App_SpeedPID.c 尚未接入，阶段三统一。 */
+/* 速度环增益与限幅 */
+#define SPEED_PID_KP        10.0f
+#define SPEED_PID_KI        1.0f
+
+#define SPEED_PID_I_LIMIT   400.0f
+#define SPEED_PID_PWM_MAX   1000.0f
+#define SPEED_PID_DT        0.05f
+/* 将 CAN 指令映射为 RPM，并由 PI 输出 PWM */
 void App_MotorCan_ControlTask(void *argument)
 {
-    int16_t current_speed = 0;
-    int16_t target;
-    int16_t step = 50;
+    int16_t current_pwm = 0;
+    int16_t can_speed = 0;
+
     uint32_t last_rx_tick;
     uint32_t print_cnt = 0;
-    char dbg_buf[96];
+    uint32_t last_loop_tick;
+
+    float target_rpm = 0.0f;
+    float previous_target_rpm = 0.0f;
+    float actual_rpm = 0.0f;
+    float error = 0.0f;
+    float integral = 0.0f;
+    float output = 0.0f;
+    float dt = SPEED_PID_DT;
+
+    char dbg_buf[128];
 
     (void)argument;
 
     Int_Motor_Init();
-
-    /* 初始没有有效控制帧，保持停止 */
+    Int_Encoder_Init();
     Int_Motor_Stop();
+
+    last_loop_tick = HAL_GetTick();
 
     for (;;)
     {
         uint32_t now = HAL_GetTick();
 
+        /* 计算本次控制周期 */
+        uint32_t elapsed_ms = (uint32_t)(now - last_loop_tick);
+        last_loop_tick = now;
+
+        dt = (float)elapsed_ms / 1000.0f;
+
+        /* 异常 dt 回退到固定周期 */
+        if (dt < 0.01f || dt > 0.20f)
+        {
+            dt = SPEED_PID_DT;
+        }
+
         last_rx_tick = App_MotorCan_GetLastRxTick();
 
-        /* 500 ms 没有收到有效控制帧，目标归零 */
+        /* CAN 超时检查 */
         if (last_rx_tick == 0U ||
             (uint32_t)(now - last_rx_tick) > 500U)
         {
-            target = 0;
+            can_speed = 0;
+            target_rpm = 0.0f;
 
-            /* 记录 CAN 通信超时 */
             App_Fault_Set(FAULT_CAN_TIMEOUT);
         }
         else
         {
-            target = App_MotorCan_GetTargetSpeed();
+            can_speed = App_MotorCan_GetTargetSpeed();
 
-            /* 收到有效控制帧后，清除超时故障 */
             App_Fault_Clear(FAULT_CAN_TIMEOUT);
+
+            /* CAN 指令映射为目标 RPM */
+            target_rpm =
+                ((float)can_speed / 1000.0f) * MOTOR_MAX_RPM;
         }
+
+        /* 读取编码器实际输出轴 RPM */
+        actual_rpm = Int_Encoder_GetOutputRPM(dt);
+
+        /* 目标大幅变化时重置积分，避免旧积分拖慢响应 */
+        if (fabsf(target_rpm - previous_target_rpm) > 5.0f)
+        {
+            integral = 0.0f;
+        }
+
+        previous_target_rpm = target_rpm;
 
         /*
-         * 每次只调整一步，避免在渐变期间
-         * 长时间阻塞任务，影响超时检查。
+         * 目标为 0 时停止电机。
+         * 同时清除积分和误差，避免下次启动带着旧积分。
          */
-        if (current_speed < target)
+        if (target_rpm == 0.0f)
         {
-            current_speed += step;
-            if (current_speed > target)
-                current_speed = target;
+            integral = 0.0f;
+            error = 0.0f;
+            output = 0.0f;
+            current_pwm = 0;
+
+            Int_Motor_Stop();
         }
-        else if (current_speed > target)
+        else
         {
-            current_speed -= step;
-            if (current_speed < target)
-                current_speed = target;
+            error = target_rpm - actual_rpm;
+
+            /* PI 计算 */
+            integral += error * dt;
+
+            if (integral > SPEED_PID_I_LIMIT)
+            {
+                integral = SPEED_PID_I_LIMIT;
+            }
+            else if (integral < -SPEED_PID_I_LIMIT)
+            {
+                integral = -SPEED_PID_I_LIMIT;
+            }
+
+            output = SPEED_PID_KP * error
+                   + SPEED_PID_KI * integral;
+
+            /* PWM 限幅 */
+            if (output > SPEED_PID_PWM_MAX)
+            {
+                output = SPEED_PID_PWM_MAX;
+            }
+            else if (output < -SPEED_PID_PWM_MAX)
+            {
+                output = -SPEED_PID_PWM_MAX;
+            }
+
+            current_pwm = (int16_t)output;
+
+            Int_Motor_SetSpeed(current_pwm);
         }
 
-        Int_Motor_SetSpeed(current_speed);
-
-        /* 每 10 次循环（约 500ms）打印一次调试信息 */
-        if ((print_cnt++ % 10) == 0)
+        /* 每 10 次循环打印一次，约 500 ms */
+        if ((print_cnt++ % 10U) == 0U)
         {
             int n = snprintf(
                 dbg_buf,
                 sizeof(dbg_buf),
-                "MOTOR target=%d cur=%d rx_tick=%lu\r\n",
-                (int)target,
-                (int)current_speed,
-                (unsigned long)last_rx_tick
+                "TgtRPM=%.1f ActRPM=%.1f "
+                "Err=%.1f I=%.1f PWM=%d\r\n",
+                (double)target_rpm,
+                (double)actual_rpm,
+                (double)error,
+                (double)integral,
+                (int)current_pwm
             );
+
             if (n > 0 && n < (int)sizeof(dbg_buf))
             {
                 HAL_UART_Transmit(

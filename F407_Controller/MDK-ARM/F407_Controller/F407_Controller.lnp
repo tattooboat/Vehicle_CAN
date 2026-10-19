@@ -39,6 +39,7 @@
 ".\f407_controller\int_led.o"
 ".\f407_controller\int_usart.o"
 ".\f407_controller\int_motor.o"
+".\f407_controller\int_encoder.o"
 ".\f407_controller\croutine.o"
 ".\f407_controller\event_groups.o"
 ".\f407_controller\list.o"
@@ -54,6 +55,7 @@
 ".\f407_controller\app_motorcontrol.o"
 ".\f407_controller\app_motorcan.o"
 ".\f407_controller\app_fault.o"
+".\f407_controller\app_speedpid.o"
 --library_type=microlib --strict --scatter ".\F407_Controller\F407_Controller.sct"
 --summary_stderr --info summarysizes --map --load_addr_map_info --xref --callgraph --symbols
 --info sizes --info totals --info unused --info veneers

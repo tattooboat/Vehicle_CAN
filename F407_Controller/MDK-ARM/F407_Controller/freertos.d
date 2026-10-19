@@ -50,12 +50,13 @@
 .\f407_controller\freertos.o: ../Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS_V2/cmsis_os2.h
 .\f407_controller\freertos.o: E:\develope\Keil5\Core\ARM\ARMCC\Bin\..\include\stdio.h
 .\f407_controller\freertos.o: E:\develope\Keil5\Core\ARM\ARMCC\Bin\..\include\string.h
+.\f407_controller\freertos.o: E:\develope\Keil5\Core\ARM\ARMCC\Bin\..\include\math.h
 .\f407_controller\freertos.o: ../Core/Inc/usart.h
 .\f407_controller\freertos.o: ./Application/App_data.h
 .\f407_controller\freertos.o: ../Core/Inc/adc.h
 .\f407_controller\freertos.o: ./Interface/Int_aht20.h
 .\f407_controller\freertos.o: ../Core/Inc/tim.h
 .\f407_controller\freertos.o: ./Interface/Int_motor.h
-.\f407_controller\freertos.o: ./Application/App_MotorControl.h
+.\f407_controller\freertos.o: ./Interface/Int_Encoder.h
 .\f407_controller\freertos.o: ./Application/App_MotorCan.h
 .\f407_controller\freertos.o: ./Application/App_Fault.h
